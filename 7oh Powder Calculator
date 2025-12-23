@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>7OH Powder Dose Calculator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    background: #0f1115;
+    color: #eee;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+  }
+  .app {
+    width: 100%;
+    max-width: 400px;
+    background: #161a22;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+  }
+  h1 {
+    text-align: center;
+    font-size: 22px;
+    margin-bottom: 12px;
+  }
+  .tabs {
+    display: flex; gap: 8px; margin-bottom: 14px;
+  }
+  .tab {
+    flex: 1;
+    padding: 10px;
+    border-radius: 10px;
+    background: #222738;
+    text-align: center;
+    font-size: 14px; cursor: pointer;
+  }
+  .tab.active { background: #4caf50; color: #000; font-weight: 600; }
+  label { font-size: 13px; margin-top: 10px; display: block; }
+  select, input {
+    width: 100%;
+    margin-top: 6px;
+    padding: 10px;
+    border: none;
+    border-radius: 10px;
+    background: #222738;
+    font-size: 16px;
+    color: #fff;
+  }
+  button {
+    margin-top: 18px;
+    width: 100%;
+    padding: 14px;
+    font-size: 17px;
+    border: none;
+    border-radius: 14px;
+    background: #4caf50;
+    color: #000;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .result {
+    margin-top: 18px;
+    background: #0d111a;
+    padding: 12px;
+    border-radius: 12px;
+    text-align: center;
+    font-size: 16px;
+  }
+  .copy {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #7ee081;
+    text-align: center;
+    cursor: pointer;
+  }
+  .history {
+    margin-top: 14px;
+    font-size: 12px;
+    color: #aaa;
+  }
+  .history div { margin-top: 4px; }
+</style>
+</head>
+
+<body>
+<div class="app">
+  <h1>7OH Powder Dose Calculator</h1>
+
+  <div class="tabs">
+    <div class="tab active" onclick="setMode('forward')">Active → Powder</div>
+    <div class="tab" onclick="setMode('reverse')">Powder → Active</div>
+  </div>
+
+  <label>Powder Preset (Omega & Bronx)</label>
+  <select id="preset" onchange="applyPreset()">
+    <option value="">— Select Powder —</option>
+
+    <optgroup label="Omega Extrax">
+      <option value="67.66">Galactic Glitter ~67.7% (OE)</option>
+      <option value="85">Astral Glitter ~85% (OE)</option>
+      <option value="72">Interstellar Glitter ~72% (OE est.)</option>
+      <option value="75">Shooting Star ~75% (OE est.)</option>
+    </optgroup>
+
+    <optgroup label="Bronx Extracts">
+      <option value="76">BX 7OH Powder ~76%</option>
+      <option value="79.8">BX 7OH ~79.8%</option>
+      <option value="80.1">BX 7OH ~80.1%</option>
+      <option value="87.5">BX 7OH ~87.5%</option>
+      <option value="90">BX 7OH Thai Crystalline ~90%</option>
+      <option value="92.8">BX Yellow ~92.8%</option>
+      <option value="94.2">BX ~94.2%</option>
+      <option value="94.4">BX Dark Yellow ~94.4%</option>
+      <option value="95">BX Yellow ~95%</option>
+      <option value="93.6">BX 70h Powder ~93.6%</option>
+    </optgroup>
+
+    <option value="custom">Custom %</option>
+  </select>
+
+  <input id="purity" type="number" step="0.1" placeholder="Or enter custom %">
+
+  <label id="valueLabel">Desired Active (mg)</label>
+  <input id="valueInput" type="number" step="0.01">
+
+  <label>Scale Rounding</label>
+  <select id="rounding">
+    <option value="exact">Exact</option>
+    <option value="0.01">0.01 mg</option>
+    <option value="0.1">0.1 mg</option>
+  </select>
+
+  <button onclick="calculate()">Calculate</button>
+
+  <div class="result" id="result">—</div>
+  <div class="copy" onclick="copyResult()">Tap to copy</div>
+
+  <div class="history" id="history"></div>
+</div>
+
+<script>
+let mode = "forward";
+let historyArr = [];
+
+function setMode(m) {
+  mode = m;
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (m==='forward' && i===0) || (m==='reverse' && i===1)));
+  document.getElementById("valueLabel").textContent = m==="forward" ? "Desired Active (mg)" : "Powder Weighed (mg)";
+  document.getElementById("result").textContent = "—";
+}
+
+function applyPreset() {
+  const val = document.getElementById("preset").value;
+  if (val==="custom") {
+    document.getElementById("purity").value = "";
+  } else {
+    document.getElementById("purity").value = val;
+  }
+}
+
+function roundVal(val, mode) {
+  if(mode==="exact") return val;
+  return Math.round(val / mode) * mode;
+}
+
+function calculate() {
+  const purity = parseFloat(document.getElementById("purity").value)/100;
+  const input = parseFloat(document.getElementById("valueInput").value);
+  const roundMode = document.getElementById("rounding").value;
+  if (isNaN(purity) || isNaN(input) || purity<=0) {
+    result.textContent = "Enter valid values";
+    return;
+  }
+  let out = mode==="forward" ? (input / purity) : (input * purity);
+  out = roundVal(out, roundMode);
+  const text = mode==="forward"
+              ? `Powder to weigh: ${out.toFixed(roundMode==="exact"?3:(roundMode==="0.01"?2:1))} mg`
+              : `Active amount: ${out.toFixed(roundMode==="exact"?3:(roundMode==="0.01"?2:1))} mg`;
+  result.textContent = text;
+  historyArr.unshift(text);
+  historyArr = historyArr.slice(0,5);
+  document.getElementById("history").innerHTML = historyArr.map(h=>`• ${h}`).join("<br>");
+}
+
+function copyResult() {
+  navigator.clipboard.writeText(document.getElementById("result").textContent);
+}
+</script>
+</body>
+</html>
